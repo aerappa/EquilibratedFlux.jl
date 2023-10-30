@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Lshaped</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js" type="text/javascript"></script>
+</head>
+<body>
+<h1 id="refinement-test">Refinement test</h1>
+<p>In this tutorial, we use the estimator obtained by the equilibrated flux to drive an adative mesh refinement (AMR) procedure. We consider the Laplace problem <span class="math display">\[\begin{align}
+-\Delta u &amp;= 0 &amp;&amp;\text{ in }\Omega\\
+u &amp;= g &amp;&amp;\text{ on }\partial\Omega
+\end{align}\]</span> on an L-shaped domain <span class="math inline">\(\Omega = (-1,1)^2 \setminus [(0,1)\times(-1,0)]\)</span>. We load this domain from a json file.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb1-1" title="1">using Gridap</a>
+<a class="sourceLine" id="cb1-2" title="2">model = DiscreteModelFromFile(<span class="st">&quot;Lshaped.json&quot;</span>)</a>
+<a class="sourceLine" id="cb1-3" title="3">Ω = Triangulation(model)</a>
+<a class="sourceLine" id="cb1-4" title="4">using GridapMakie, GLMakie</a>
+<a class="sourceLine" id="cb1-5" title="5">fig = plot(Ω)</a>
+<a class="sourceLine" id="cb1-6" title="6">wireframe!(Ω, color=:black, linewidth=<span class="fl">2</span>);</a>
+<a class="sourceLine" id="cb1-7" title="7">fig</a></code></pre></div>
+<p>In this case, we know the true solution <span class="math inline">\(u\)</span> is given by the following formula in polar coordinates:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb2-1" title="1"><span class="st">&quot;Have to convert from -[π, π] to [0, 2π]&quot;</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="kw">function</span> θ(x)</a>
+<a class="sourceLine" id="cb2-3" title="3">  θt = atan(x[<span class="fl">2</span>], x[<span class="fl">1</span>])</a>
+<a class="sourceLine" id="cb2-4" title="4">  (θt &gt;= <span class="fl">0</span>) * θt + (θt &lt; <span class="fl">0</span>) * (θt + <span class="fl">2</span> * π)</a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="kw">end</span></a>
+<a class="sourceLine" id="cb2-6" title="6"></a>
+<a class="sourceLine" id="cb2-7" title="7">r(x) = sqrt(x[<span class="fl">1</span>]^<span class="fl">2</span> + x[<span class="fl">2</span>]^<span class="fl">2</span>)</a>
+<a class="sourceLine" id="cb2-8" title="8"></a>
+<a class="sourceLine" id="cb2-9" title="9">α = <span class="fl">2</span> / <span class="fl">3</span></a>
+<a class="sourceLine" id="cb2-10" title="10"></a>
+<a class="sourceLine" id="cb2-11" title="11">u(x) = r(x)^α * sin(θ(x) * α)</a>
+<a class="sourceLine" id="cb2-12" title="12">u_fig, _ , plt = plot(Ω, u, colormap=:viridis)</a>
+<a class="sourceLine" id="cb2-13" title="13">Colorbar(u_fig[<span class="fl">1</span>,<span class="fl">2</span>], plt)</a></code></pre></div>
+<p><img src="soln_coarse.png" /></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb3-1" title="1">using Gridap</a>
+<a class="sourceLine" id="cb3-2" title="2">using Gridap.Geometry</a>
+<a class="sourceLine" id="cb3-3" title="3">using Gridap.Adaptivity</a>
+<a class="sourceLine" id="cb3-4" title="4">using EqFlux</a></code></pre></div>
+<p>We define some helper functions for computing the L² norm in Gridap</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb4-1" title="1">L2_inner_product(f, g, dx) = ∫(f ⋅ g) * dx</a>
+<a class="sourceLine" id="cb4-2" title="2"></a>
+<a class="sourceLine" id="cb4-3" title="3">L2_norm_squared(f, dx) = L2_inner_product(f, f, dx)</a>
+<a class="sourceLine" id="cb4-4" title="4"></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="kw">function</span> L2_norm_squared(f, model, order)</a>
+<a class="sourceLine" id="cb4-6" title="6">  degree = <span class="fl">2</span> * order + <span class="fl">2</span></a>
+<a class="sourceLine" id="cb4-7" title="7">  Ω = Triangulation(model)</a>
+<a class="sourceLine" id="cb4-8" title="8">  dx = Measure(Ω, degree)</a>
+<a class="sourceLine" id="cb4-9" title="9">  L2_norm_squared(f, dx)</a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="kw">end</span></a></code></pre></div>
+<p>Next, we define the Dörfler marking[1]</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">function</span> dorfler_marking(η_arr)</a>
+<a class="sourceLine" id="cb5-2" title="2">  <span class="kw">if</span> η_arr isa Gridap.Arrays.LazyArray</a>
+<a class="sourceLine" id="cb5-3" title="3">    η_arr = EqFlux.smart_collect(η_arr)</a>
+<a class="sourceLine" id="cb5-4" title="4">  <span class="kw">end</span></a>
+<a class="sourceLine" id="cb5-5" title="5">  θ = <span class="fl">0.3</span> <span class="co"># Marking parameter</span></a>
+<a class="sourceLine" id="cb5-6" title="6">  η_tot = sum(η_arr)</a>
+<a class="sourceLine" id="cb5-7" title="7">  sorted_inds = sortperm(η_arr, rev = true)</a>
+<a class="sourceLine" id="cb5-8" title="8">  sorted = η_arr[sorted_inds]</a>
+<a class="sourceLine" id="cb5-9" title="9">  η_partial = <span class="fl">0.0</span></a>
+<a class="sourceLine" id="cb5-10" title="10">  i = <span class="fl">1</span></a>
+<a class="sourceLine" id="cb5-11" title="11">  <span class="kw">while</span> η_partial &lt;= θ * η_tot</a>
+<a class="sourceLine" id="cb5-12" title="12">    η_partial += sorted[i]</a>
+<a class="sourceLine" id="cb5-13" title="13">    i += <span class="fl">1</span></a>
+<a class="sourceLine" id="cb5-14" title="14">  <span class="kw">end</span></a>
+<a class="sourceLine" id="cb5-15" title="15">  sorted_inds[<span class="fl">1</span>:i]</a>
+<a class="sourceLine" id="cb5-16" title="16"><span class="kw">end</span></a></code></pre></div>
+<p>As a small example, we show the result of calling `dorfler_marking</p>
+<p>This step just corresponds to the contents of the <a href="https://gridap.github.io/Tutorials/dev/pages/t001_poisson/#Tutorial-1:-Poisson-equation-1">first Gridap.jl tutorial</a>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">function</span> solve_laplace(model, order, g)</a>
+<a class="sourceLine" id="cb6-2" title="2">  Ω = Triangulation(model)</a>
+<a class="sourceLine" id="cb6-3" title="3">  degree = <span class="fl">2</span> * order + <span class="fl">2</span></a>
+<a class="sourceLine" id="cb6-4" title="4">  dx = Measure(Ω, degree)</a>
+<a class="sourceLine" id="cb6-5" title="5">  a(u, v) = ∫(∇(v) ⊙ ∇(u)) * dx</a>
+<a class="sourceLine" id="cb6-6" title="6">  b(v) = ∫(v * <span class="fl">0.0</span>) * dx</a>
+<a class="sourceLine" id="cb6-7" title="7">  reffe = ReferenceFE(lagrangian, <span class="dt">Float64</span>, order)</a>
+<a class="sourceLine" id="cb6-8" title="8">  V0 = TestFESpace(model, reffe; conformity = :H1, dirichlet_tags = <span class="st">&quot;boundary&quot;</span>)</a>
+<a class="sourceLine" id="cb6-9" title="9">  U = TrialFESpace(V0, g)</a>
+<a class="sourceLine" id="cb6-10" title="10">  op = AffineFEOperator(a, b, U, V0)</a>
+<a class="sourceLine" id="cb6-11" title="11">  uh = solve(op)</a>
+<a class="sourceLine" id="cb6-12" title="12">  dofs = num_free_dofs(V0)</a>
+<a class="sourceLine" id="cb6-13" title="13">  uh, dx, dofs</a>
+<a class="sourceLine" id="cb6-14" title="14"><span class="kw">end</span></a></code></pre></div>
+<p>This function uses the EqFlux.jl package to obtain an error estimation on each cell of the mesh.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">function</span> estimate_laplace(uh, dx, model, order)</a>
+<a class="sourceLine" id="cb7-2" title="2">    σ = build_equilibrated_flux(-∇(uh), x -&gt; <span class="fl">0.0</span>, model, order)</a>
+<a class="sourceLine" id="cb7-3" title="3">    <span class="co">#σ = build_averaged_flux(∇(uh), model)</span></a>
+<a class="sourceLine" id="cb7-4" title="4">    η² = L2_norm_squared(σ + ∇(uh), dx)</a>
+<a class="sourceLine" id="cb7-5" title="5">    Ω = Triangulation(model)</a>
+<a class="sourceLine" id="cb7-6" title="6">    getindex(η², Ω)</a>
+<a class="sourceLine" id="cb7-7" title="7">  <span class="kw">end</span></a>
+<a class="sourceLine" id="cb7-8" title="8"></a>
+<a class="sourceLine" id="cb7-9" title="9">using Gridap.Adaptivity</a></code></pre></div>
+<p>Finally, this function puts the previous functions together into the standard Solve -&gt; Estimate -&gt; Mark -&gt; Refine loop of AFEM. The refinement step using newest vertex bisection can be selected using “nvb” with the keyword argument refinement_method. g is the function on the Dirichlet boundary.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">function</span> solve_estimate_mark_refine_laplace(model, tol, order; g)</a>
+<a class="sourceLine" id="cb8-2" title="2">  η = Inf</a>
+<a class="sourceLine" id="cb8-3" title="3">  estimators = <span class="dt">Float64</span>[]</a>
+<a class="sourceLine" id="cb8-4" title="4">  errors = <span class="dt">Float64</span>[]</a>
+<a class="sourceLine" id="cb8-5" title="5">  num_dofs = <span class="dt">Float64</span>[]</a>
+<a class="sourceLine" id="cb8-6" title="6">  error_fields = CellField[]</a>
+<a class="sourceLine" id="cb8-7" title="7">  <span class="kw">while</span> η &gt; tol</a>
+<a class="sourceLine" id="cb8-8" title="8">    <span class="co"># We extract the internal model from the refined model</span></a>
+<a class="sourceLine" id="cb8-9" title="9">    <span class="kw">if</span> model isa AdaptedDiscreteModel</a>
+<a class="sourceLine" id="cb8-10" title="10">      model = model.model</a>
+<a class="sourceLine" id="cb8-11" title="11">    <span class="kw">end</span></a>
+<a class="sourceLine" id="cb8-12" title="12">    <span class="co"># SOLVE</span></a>
+<a class="sourceLine" id="cb8-13" title="13">    uh, dx, dofs = solve_laplace(model, order, g)</a>
+<a class="sourceLine" id="cb8-14" title="14">    push!(num_dofs, dofs)</a>
+<a class="sourceLine" id="cb8-15" title="15">    <span class="co"># ESTIMATE</span></a>
+<a class="sourceLine" id="cb8-16" title="16">    η_arr = estimate_laplace(uh, dx, model, order)</a>
+<a class="sourceLine" id="cb8-17" title="17">    H1err² = L2_norm_squared(∇(u - uh), dx)</a>
+<a class="sourceLine" id="cb8-18" title="18">    Ω = Triangulation(model)</a>
+<a class="sourceLine" id="cb8-19" title="19">    error_field = CellField(sqrt.(getindex(H1err², Ω)), Ω)</a>
+<a class="sourceLine" id="cb8-20" title="20">    push!(error_fields, error_field)</a>
+<a class="sourceLine" id="cb8-21" title="21">    H1err = √sum(H1err²)</a>
+<a class="sourceLine" id="cb8-22" title="22">    η = √(sum(η_arr))</a>
+<a class="sourceLine" id="cb8-23" title="23">    push!(estimators, η)</a>
+<a class="sourceLine" id="cb8-24" title="24">    push!(errors, H1err)</a>
+<a class="sourceLine" id="cb8-25" title="25">    <span class="co"># MARK</span></a>
+<a class="sourceLine" id="cb8-26" title="26">    cells_to_refine = dorfler_marking(η_arr)</a>
+<a class="sourceLine" id="cb8-27" title="27">    <span class="co"># REFINE</span></a>
+<a class="sourceLine" id="cb8-28" title="28">    model = refine(model, refinement_method = <span class="st">&quot;nvb&quot;</span>, cells_to_refine = cells_to_refine)</a>
+<a class="sourceLine" id="cb8-29" title="29"></a>
+<a class="sourceLine" id="cb8-30" title="30">  <span class="kw">end</span></a>
+<a class="sourceLine" id="cb8-31" title="31">  <span class="kw">return</span> error_fields, num_dofs, estimators, errors</a>
+<a class="sourceLine" id="cb8-32" title="32"><span class="kw">end</span></a></code></pre></div>
+<p>We can change the polynomial order here as well as the tolerance for the estimator.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb9-1" title="1">order = <span class="fl">2</span></a>
+<a class="sourceLine" id="cb9-2" title="2">tol = <span class="fl">1e-4</span></a></code></pre></div>
+<p>We pass the true solution as the Dirichlet function <span class="math inline">\(g\)</span></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb10-1" title="1">error_fields, num_dofs, estimators, errors = solve_estimate_mark_refine_laplace(model, tol, order, g = u)</a>
+<a class="sourceLine" id="cb10-2" title="2">fig = Figure()</a>
+<a class="sourceLine" id="cb10-3" title="3">axis = Axis(fig[<span class="fl">1</span>,<span class="fl">1</span>], xscale = log10, yscale = log10, title = <span class="st">&quot;Order p=$order&quot;</span>, xlabel = <span class="st">&quot;DOFs&quot;</span>)</a>
+<a class="sourceLine" id="cb10-4" title="4">lines!(axis, num_dofs, errors, label = <span class="st">&quot;Error&quot;</span>)</a>
+<a class="sourceLine" id="cb10-5" title="5">lines!(axis, num_dofs, estimators, label = <span class="st">&quot;Estimator&quot;</span>)</a>
+<a class="sourceLine" id="cb10-6" title="6">lines!(axis, num_dofs, num_dofs.^(-order / <span class="fl">2</span>), label = <span class="st">&quot;Optimal rate&quot;</span>)</a>
+<a class="sourceLine" id="cb10-7" title="7">axislegend()</a>
+<a class="sourceLine" id="cb10-8" title="8">fig</a></code></pre></div>
+<p>We now show that the AFEM refinement achieves the optimat rate of convergence of <span class="math inline">\(\mathrm{DOFs}^{-p/d} = \mathrm{DOFs}^{-p/2}\)</span> in 2D.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb11-1" title="1">@show estimators[<span class="kw">end</span>]</a></code></pre></div>
+<p><img src="convergence.png" /></p>
+<p>Finally, we plot a .gif that shows sequence of meshes generated by the adaptive refinement procedure. The refinement is clearly concentrated to the re-entrant corner.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb12-1" title="1">idx = Observable(<span class="fl">1</span>)</a>
+<a class="sourceLine" id="cb12-2" title="2">errors_plot = lift(idx) <span class="kw">do</span> idx</a>
+<a class="sourceLine" id="cb12-3" title="3">  error_fields[idx].trian</a>
+<a class="sourceLine" id="cb12-4" title="4"><span class="kw">end</span></a>
+<a class="sourceLine" id="cb12-5" title="5"></a>
+<a class="sourceLine" id="cb12-6" title="6">fig, ax, plt = plot(errors_plot)</a>
+<a class="sourceLine" id="cb12-7" title="7"><span class="co">#display(fig)</span></a>
+<a class="sourceLine" id="cb12-8" title="8">wireframe!(errors_plot, color=:black, linewidth=<span class="fl">2</span>)</a>
+<a class="sourceLine" id="cb12-9" title="9">framerate = <span class="fl">5</span></a>
+<a class="sourceLine" id="cb12-10" title="10">idxs = <span class="fl">1</span>:length(error_fields)</a>
+<a class="sourceLine" id="cb12-11" title="11">record(fig, <span class="st">&quot;animation.gif&quot;</span>, idxs; framerate=framerate, compression=<span class="fl">0</span>) <span class="kw">do</span> this_idx</a>
+<a class="sourceLine" id="cb12-12" title="12">  idx[] = this_idx</a>
+<a class="sourceLine" id="cb12-13" title="13"><span class="kw">end</span></a></code></pre></div>
+<p><img src="animation.gif" /></p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode julia"><code class="sourceCode julia"><a class="sourceLine" id="cb13-1" title="1"><span class="co">#wireframe!(Ω, color=:black, linewidth=2);</span></a></code></pre></div>
+<p>[1] Dörfler, W. A convergent adaptive algorithm for Poisson’s equation. SIAM Journal on Numerical Analysis 33, 3 (1996), 1106–1124</p>
+<hr />
+<p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p>
+</body>
+</html>

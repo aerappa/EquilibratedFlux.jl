@@ -1,0 +1,10 @@
+[deps]
+EqFlux = "ed78a1e2-7d3c-417b-a9de-456fe7bc806a"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+Gridap = "56d4f2e9-7ea1-5844-9cf6-b9c51ca7ce8e"
+GridapGmsh = "3025c34a-b394-11e9-2a55-3fee550c04c8"
+GridapMakie = "41f30b06-6382-4b60-a5f7-79d86b35bf5d"
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
