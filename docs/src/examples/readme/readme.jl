@@ -77,7 +77,7 @@ In either case,the estimator takes the form
 
 using Gridap
 using GridapMakie
-using GLMakie
+using CairoMakie
 
 n = 10 # Number of elements in x and y for square mesh
 domain = (0,1,0,1)

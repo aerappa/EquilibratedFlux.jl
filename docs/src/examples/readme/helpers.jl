@@ -1,6 +1,6 @@
 using Gridap
 using LaTeXStrings
-using GridapMakie, GLMakie
+using GridapMakie, CairoMakie
 
 # Define some helper functions
 L2_inner_product(f, g, dx) = ∫(f ⋅ g) * dx

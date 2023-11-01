@@ -1,5 +1,4 @@
 using Gridap.CellData
-using Infiltrator
 
 function _get_hat_function_cellfield(i, basis_data, model)
   Ω = Triangulation(model)
@@ -44,7 +43,6 @@ end
 function _build_cellwise_matrices(duRT, weight, dvRT, dvp, Qₕ)
   cell_mass_mats = ∫(weight ⋅ duRT ⋅ dvRT) * Qₕ
   cell_mixed_mats = ∫((∇ ⋅ duRT) * dvp) * Qₕ
-  @exfiltrate
   cell_mass_mats = parallel_smart_collect(cell_mass_mats)
   cell_mixed_mats = parallel_smart_collect(cell_mixed_mats)
   cell_mass_mats, cell_mixed_mats
