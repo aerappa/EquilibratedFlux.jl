@@ -1,8 +1,8 @@
 ```@meta
-CurrentModule = EqFlux
+CurrentModule = EquilibratedFlux
 ```
 
-# EqFlux
+# EquilibratedFlux.jl
 
 This package is based on
 [Gridap.jl](https://github.com/gridap/Gridap.jl/tree/master) to provide
@@ -25,7 +25,7 @@ V_h\subset H^1_0(\Omega)$ to the solution $u$ in Gridap.jl by solving
 (\nabla u_h, \nabla v_h) = (f, v_h)\quad\forall v_h\in V_h,
 ```
 
-The `EqFlux.jl` library then provides the tools to compute a reconstructed flux
+The `EquilibratedFlux.jl` library then provides the tools to compute a reconstructed flux
 associated to $u_h$. This flux, obtained by postprocessing, is an approximation to the numerical flux, i.e.
 
 ```math
@@ -58,5 +58,5 @@ demonstration of how to do this.
 
 
 ```@autodocs
-Modules = [EqFlux]
+Modules = [EquilibratedFlux]
 ```

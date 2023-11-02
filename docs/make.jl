@@ -1,4 +1,4 @@
-using EqFlux
+using EquilibratedFlux
 using Documenter
 using Literate
 
@@ -9,17 +9,17 @@ for name in ("readme", "Lshaped")
     end
 end
 
-DocMeta.setdocmeta!(EqFlux, :DocTestSetup, :(using EqFlux); recursive=true)
+DocMeta.setdocmeta!(EquilibratedFlux, :DocTestSetup, :(using EquilibratedFlux); recursive=true)
 
 on_CI = get(ENV, "CI", "false") == "true"
 makedocs(;
-         modules=[EqFlux],
+         modules=[EquilibratedFlux],
          authors="Ari Rappaport <ari.rappaport@inria.fr>",
-         repo="https://github.comaerappa/EquilibratedFlux.jl/blob/{commit}{path}#{line}",
-         sitename="EqFlux.jl",
+         repo="https://github.com/aerappa/EquilibratedFlux.jl/blob/{commit}{path}#{line}",
+         sitename="EquilibratedFlux.jl",
          format=Documenter.HTML(;
                                 prettyurls=get(ENV, "CI", "false") == "true",
-                                canonical="https://aerappa.github.io/EqquilibratedFlux.jl",
+                                canonical="https://aerappa.github.io/EquilibratedFlux.jl",
                                 edit_link="main",
                                 assets=String[],
                                 ),

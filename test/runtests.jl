@@ -1,6 +1,6 @@
-using EqFlux
+using EquilibratedFlux
 using Test
 
-@testset "EqFlux.jl" begin
+@testset "EquilibratedFlux.jl" begin
     # Write your tests here.
 end

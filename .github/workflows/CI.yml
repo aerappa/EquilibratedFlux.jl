@@ -48,6 +48,7 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
+      - uses: julia-actions/cache@v1
       - name: Configure doc environment
         run: |
           julia --project=docs/ -e '
@@ -62,6 +63,6 @@ jobs:
         run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using EqFlux
-            DocMeta.setdocmeta!(EqFlux, :DocTestSetup, :(using EqFlux); recursive=true)
-            doctest(EqFlux)'
+            using EquilibratedFlux
+            DocMeta.setdocmeta!(EquilibratedFlux, :DocTestSetup, :(using EquilibratedFlux); recursive=true)
+            doctest(EquilibratedFlux)'

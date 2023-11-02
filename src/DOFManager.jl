@@ -124,7 +124,7 @@ function update_free_patch_dofs!(dm, patch_data)
   end
 end
 
-function update_patch_dofs!(dm::EqFlux.DOFManager, patch_data)
+function update_patch_dofs!(dm::DOFManager, patch_data)
   update_global_patch_dofs!(dm, patch_data)
   update_free_patch_dofs!(dm, patch_data)
   nothing

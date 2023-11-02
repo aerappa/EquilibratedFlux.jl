@@ -41,8 +41,8 @@ end
 function matrix_scatter!(patch_mat, cell_mats, dm_col, dm_row, patch_data)
   fill!(patch_mat, 0)
   for cellid in patch_data.patch_cell_ids
-    EqFlux.update_cell_local_dofs!(dm_row, cellid)
-    EqFlux.update_cell_local_dofs!(dm_col, cellid)
+    update_cell_local_dofs!(dm_row, cellid)
+    update_cell_local_dofs!(dm_col, cellid)
     cell_mat = cell_mats[cellid]
     for i in axes(cell_mat, 1)
       for j in axes(cell_mat, 2)
@@ -55,7 +55,7 @@ end
 function single_vector_scatter!(patch_vec, cell_vecs, dm, patch_data)
   fill!(patch_vec, 0)
   for cellid in patch_data.patch_cell_ids
-    EqFlux.update_cell_local_dofs!(dm, cellid)
+    update_cell_local_dofs!(dm, cellid)
     cell_vec = cell_vecs[cellid]
     for i in axes(cell_vec, 1)
       patch_vec[dm.cell_dofs_loc[i]] += cell_vec[i]
@@ -69,7 +69,7 @@ function vector_scatter!(patch_vec, cell_vecs, dm, patch_data)
   for (i, cellid) in enumerate(patch_data.patch_cell_ids)
     cell_vec_all_nodes = @view cell_vecs[cellid, :]
     offset = node_to_offsets[i]
-    EqFlux.update_cell_local_dofs!(dm, cellid)
+    update_cell_local_dofs!(dm, cellid)
     cell_vec = cell_vec_all_nodes[offset]
     for i in axes(cell_vec, 1)
       patch_vec[dm.cell_dofs_loc[i]] += cell_vec[i]

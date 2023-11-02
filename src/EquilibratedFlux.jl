@@ -1,4 +1,4 @@
-module EqFlux
+module EquilibratedFlux
 using Gridap
 using Gridap.Geometry
 #using BenchmarkTools

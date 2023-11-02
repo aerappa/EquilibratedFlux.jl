@@ -1,4 +1,4 @@
-name = "EqFlux"
+name = "EquilibratedFlux"
 uuid = "ed78a1e2-7d3c-417b-a9de-456fe7bc806a"
 authors = ["Ari Rappaport <ari.rappaport@inria.fr>"]
 version = "0.1.0"
