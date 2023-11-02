@@ -1,4 +1,4 @@
-# # EqFlux.jl
+# # [Error estimation](@id tuto-error-estimation)
 #
 #md # [![ipynb](https://img.shields.io/badge/download-ipynb-blue)](readme.ipynb)
 #md # [![nbviewer](https://img.shields.io/badge/show-nbviewer-blue.svg)](@__NBVIEWER_ROOT_URL__/examples/readme/readme.ipynb)
@@ -16,7 +16,7 @@ equation
 - \Delta u &= f &&\text{in }\Omega\\
 u &= g &&\text{on }\partial\Omega.
 \end{align}
-```math
+```
 
 We suppose we have already computed a conforming approximation $u_h \in
 V_h\subset H^1_0(\Omega)$ to the solution $u$ in Gridap.jl by solving
@@ -69,9 +69,6 @@ In either case,the estimator takes the form
 
 =#
 
-
-# # Demonstration
-#
 # We set $\Omega = (0,1)^2$ to be the unit square in 2D. We use a uniform
 # simplicial mesh $\mathcal{T}_h$ to discretize this domain by the following in Gridap.jl
 
@@ -127,21 +124,20 @@ using EqFlux
 σ_ave = build_averaged_flux(-∇(uh), model);
 
 # First we calculate the estimators and the error using the fluxes and the
-# approximate solution uh.
+# approximate solution $u_h$.
 
 include("helpers.jl")
 
 H1err² = L2_norm_squared(∇(u - uh), dx)
 @show sqrt(sum(H1err²))
+H1err_arr = sqrt.(getindex(H1err², 𝓣ₕ));
 
-H1err_arr = sqrt.(getindex(H1err², 𝓣ₕ))
 η_eq² = L2_norm_squared(σ_eq + ∇(uh), dx)
 @show sqrt(sum(η_eq²))
+ηeq_arr = sqrt.(getindex(η_eq², 𝓣ₕ));
 
-ηeq_arr = sqrt.(getindex(η_eq², 𝓣ₕ))
 η_ave² = L2_norm_squared(σ_ave + ∇(uh), dx)
 @show sqrt(sum(η_ave²))
-
 ηave_arr = sqrt.(getindex(η_ave², 𝓣ₕ));
 
 # Now we plot the estimators and errors restricted to each element (the full

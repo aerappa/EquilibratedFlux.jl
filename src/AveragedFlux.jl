@@ -52,6 +52,12 @@ function scatter_to_σ!(σ_arr, edge_inds, edge_to_cells, edge_lengths, normals,
   end
 end
 
+
+"""
+    build_averaged_flux(𝐀ₕ, model)
+
+TODO: relevant docstring
+"""
 function build_averaged_flux(𝐀ₕ, model)
   𝓣ₕ = Triangulation(model)
 	𝓢ₕ = SkeletonTriangulation(model)

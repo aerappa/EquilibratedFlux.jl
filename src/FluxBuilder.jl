@@ -14,6 +14,12 @@ function build_equilibrated_flux(𝐀ₕ, f, model::AdaptedDiscreteModel, RT_ord
   build_equilibrated_flux(𝐀ₕ, f, model.model, RT_order, measure = measure, weight = weight)
 end
 
+
+"""
+    build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0)
+
+TODO: relevant docstring
+"""
 function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0)
   topo = get_grid_topology(model)
   @assert all(p->p==TRI,get_polytopes(topo))
