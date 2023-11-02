@@ -27,9 +27,9 @@ V_h\subset H^1_0(\Omega)$ to the solution $u$ in Gridap.jl by solving
 
 for this see for example the [first Gridap.jl
 tutorial](https://gridap.github.io/Tutorials/dev/pages/t001_poisson/#Tutorial-1:-Poisson-equation-1).
-The `EqFlux.jl` library then provides the tools to compute an estimator
-$\eta(u_h)$ such that the error measured in the $H^1_0$-seminorm can be bounded
-as
+The `EquilibratedFlux.jl` library then provides the tools to compute an
+estimator $\eta(u_h)$ such that the error measured in the $H^1_0$-seminorm can
+be bounded as
 
 ```math
 \|\nabla(u - u_h)\| \le \eta(u_h),
@@ -119,7 +119,7 @@ fig_soln
 # We can then build the fluxes $\sigma_{\mathrm{eq},h}$ and
 # $\sigma_{\mathrm{ave},h}$ via the following:
 
-using EqFlux
+using EquilibratedFlux
 σ_eq = build_equilibrated_flux(-∇(uh), f, model, order);
 σ_ave = build_averaged_flux(-∇(uh), model);
 

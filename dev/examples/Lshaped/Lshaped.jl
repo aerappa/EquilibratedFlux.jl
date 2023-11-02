@@ -50,7 +50,7 @@ u_fig
 
 using Gridap.Geometry
 using Gridap.Adaptivity
-using EqFlux
+using EquilibratedFlux
 
 # We define some helper functions for computing the L² norm in Gridap
 
@@ -69,7 +69,7 @@ end
 
 function dorfler_marking(η_arr)
   if η_arr isa Gridap.Arrays.LazyArray
-    η_arr = EqFlux.smart_collect(η_arr)
+    η_arr = EquilibratedFlux.smart_collect(η_arr)
   end
   θ = 0.3 # Marking parameter
   η_tot = sum(η_arr)
@@ -107,7 +107,7 @@ function solve_laplace(model, order, g)
   uh, dx, dofs
 end
 
-# This function uses the EqFlux.jl package to obtain an error estimation on each
+# This function uses the EquilibratedFlux.jl package to obtain an error estimation on each
 # cell of the mesh.
 
 function estimate_laplace(uh, dx, model, order)
