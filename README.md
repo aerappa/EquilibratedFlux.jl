@@ -41,9 +41,11 @@ sense that
 ```
 
 We provide two functions to obtain such an object:
-[`build_equilibrated_flux`](@ref) and [`build_averaged_flux`](@ref) both provide
-reconstructed fluxes, which we denote by $\sigma_{\mathrm{eq},h}$ and
-$\sigma_{\mathrm{ave},h}$ respectively.
+[`build_equilibrated_flux`](https://aerappa.github.io/EquilibratedFlux.jl/dev/#EquilibratedFlux.build_equilibrated_flux-NTuple{4,%20Any})
+and
+[`build_averaged_flux`](https://aerappa.github.io/EquilibratedFlux.jl/dev/#EquilibratedFlux.build_averaged_flux-Tuple{Any,%20Any})
+both provide reconstructed fluxes, which we denote by $\sigma_{\mathrm{eq},h}$
+and $\sigma_{\mathrm{ave},h}$ respectively.
 
 In addition to the properties listed above, the equilibrated flux
 $\sigma_{\mathrm{eq},h}$ satisfies the so-called equilibrium condition, i.e.,
