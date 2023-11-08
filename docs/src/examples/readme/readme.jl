@@ -144,6 +144,7 @@ H1err_arr = sqrt.(getindex(H1err², 𝓣ₕ));
 # code can be found in `helpers.jl`)
 
 fig = plot_error_and_estimator(𝓣ₕ, ηave_arr, ηeq_arr, H1err_arr)
+save("estimator.png", fig) #src
 
 # We see that both estimators provide a good cellwise approximation of the
 # error, but the one based on the equilibrated flux is closer visually. Next, we

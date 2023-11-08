@@ -6,6 +6,10 @@ for name in ("readme", "Lshaped")
     cd(joinpath(@__DIR__, "src", "examples", name)) do
         Literate.markdown("$name.jl")
         Literate.notebook("$name.jl")
+        if name == "readme"
+            @info "running script `$name.jl`"
+            include(joinpath(pwd(), "$name.jl"))
+        end
     end
 end
 
