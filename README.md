@@ -68,6 +68,6 @@ estimators](https://aerappa.github.io/EquilibratedFlux.jl/dev/examples/readme/re
 
 Estimators obtained using the equilibrated flux can be used to drive an Adaptive
 Mesh Refinement (AMR) precedure, demonstrated here for the Laplace problem in an
-[L-shaped domain](https://aerappa.github.io/EquilibratedFlux.jl/dev/examples/Lshaped/Lshaped/)
+[L-shaped domain](https://aerappa.github.io/EquilibratedFlux.jl/dev/examples/Lshaped/Lshaped/).
 
 [![](https://aerappa.github.io/EquilibratedFlux.jl/dev/examples/Lshaped/animation.gif)](https://aerappa.github.io/EquilibratedFlux.jl/dev/examples/Lshaped/Lshaped/)
