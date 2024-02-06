@@ -4,6 +4,7 @@ authors = ["Ari Rappaport <ari.rappaport@inria.fr>"]
 version = "0.1.0"
 
 [deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 ChunkSplitters = "ae650224-84b6-46f8-82ea-d812ca08434e"
 FastLapackInterface = "29a986be-02c6-4525-aec4-84b980013641"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
@@ -12,10 +13,10 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-julia = "1.9"
 ChunkSplitters = "2.0"
 FastLapackInterface = "2.0"
 FillArrays = "0.13"
 Gridap = "0.17"
 LinearAlgebra = "1.9"
 SparseArrays = "1.9"
+julia = "1.9"
