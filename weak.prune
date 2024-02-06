@@ -1,0 +1,18 @@
+#+ hint in ["multithread", "nomultithread"];
++ hint in ["nomultithread"];
+
+#+ nb_threads in [01,02,04, 06, 08, 10, 12, 14, 16, 18, 20, 22];
+#+ nb_threads in [01, 02, 04, 08, 12, 16];
++ nb_threads in [04];
+
+#+ p in [01, 02, 03, 04, 05, 06, 07];
++ p in [04];
+
+
+# Json parameter file
++ out_dir = hint+"/p"+str(p)+"/threads"+str(nb_threads);
+#+ write(path([out_dir,"param.json"]), to_json(comb));
+
+# + execute("sbatch -e $out_dir/paracirce.err -o $out_dir/paracirce.out submit.batch");
++ execute("mkdir -p $out_dir");
++ execute("sbatch --job-name=t-${nb_threads}_p-$p --hint=$hint -o $out_dir/scaling.out submit_job.sbatch");

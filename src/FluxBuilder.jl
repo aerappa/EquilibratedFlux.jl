@@ -1,6 +1,7 @@
 using LinearAlgebra
 using Gridap.Adaptivity
 using ChunkSplitters
+using BenchmarkTools
 #using TimerOutputs
 #
 #macro timeit(timer, title, body)
@@ -25,6 +26,11 @@ function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing,
   @assert all(p->p==TRI,get_polytopes(topo))
   patches, metadata = create_patches(model, RT_order)
   spaces = build_global_spaces(model, RT_order)
+  println("Loop on cells")
+  #cell_time = @benchmark build_all_cellwise_objects($𝐀ₕ, $f, $weight, $spaces, $model, $RT_order, $measure)
+  #display(cell_time)
+  cell_time = @belapsed build_all_cellwise_objects($𝐀ₕ, $f, $weight, $spaces, $model, $RT_order, $measure)
+  @show cell_time
   cell_objects = build_all_cellwise_objects(𝐀ₕ, f, weight, spaces, model, RT_order, measure)
   linalgs = [instantiate_linalg(RT_order, 2, metadata) for i = 1:Threads.nthreads()]
   dms = build_DOFManagers(spaces)
@@ -33,9 +39,17 @@ function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing,
     filter(patch -> patch isa DirichletPatch, patches)
   int_patches::Vector{InteriorPatch{Int32}} =
     filter(patch -> patch isa InteriorPatch, patches)
+  println("Loop on patches")
+  free_vals_bench = zeros(size(σ_gl.free_values))
+  diri_patch_time = @belapsed build_equilibrated_flux($diri_patches, $free_vals_bench, $linalgs, $cell_objects, $RT_order, $dms)
+  #display(diri_patch_time)
+  int_patch_time = @belapsed build_equilibrated_flux($int_patches, $free_vals_bench, $linalgs, $cell_objects, $RT_order, $dms)
   build_equilibrated_flux(diri_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
   build_equilibrated_flux(int_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
-  σ_gl
+  patch_time = diri_patch_time + int_patch_time
+  @show patch_time
+  #display(int_patch_time)
+  σ_gl, cell_time, patch_time
 end
 
 function matrix_scatter!(patch_mat, cell_mats, dm_col, dm_row, patch_data)

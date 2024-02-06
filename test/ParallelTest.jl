@@ -42,14 +42,10 @@ function compute_error(u, uh, model, degree)
   L2_norm(∇(u - uh), dx)
 end
 
-function run_timing_test(ns, soln_degree, RT_degree, foldername)
+function run_timing_test(ns, soln_degree, RT_degree, foldername, compute_err_and_est)
   times_poisson = Float64[]
-  times_cell_loop = Float64[]
-  times_bdry_loops = Float64[]
-  times_dm = Float64[]
-  times_int_loops = Float64[]
-  times_flux_total = Float64[]
-  times_flux_ave = Float64[]
+  cell_times = Float64[]
+  patch_times = Float64[]
   all_dofs = Float64[]
   #JLD2.save(joinpath(foldername, "results.jld2"), Base.@locals)
   #return
@@ -67,40 +63,30 @@ function run_timing_test(ns, soln_degree, RT_degree, foldername)
       GC.gc()
       @show Threads.nthreads()
       BLAS.set_num_threads(Threads.nthreads())
-      time_poisson = @elapsed begin
-        println("time poisson")
-        @time uh, dofs = solve_poisson(model, u, f, soln_degree)
-      end
+      # Benchmark
+      time_poisson = @belapsed solve_poisson($model, $u, $f, $soln_degree)
+      uh, dofs = solve_poisson(model, u, f, soln_degree)
       @show time_poisson
       @show dofs
       push!(all_dofs, dofs)
       push!(times_poisson, time_poisson)
       ∇uh = ∇(uh)
-      println("Flux assemble")
       GC.gc()
-      time_flux = @elapsed begin
-        #σ, time_cell_loop, time_bdry_loop, time_int_loop, time_dm = build_flux(∇uh, f, model, RT_degree, weight =1.0)
-        σ= build_equilibrated_flux(-∇uh, f, model, RT_degree)
+      #flux_time = @belapsed build_equilibrated_flux(-$∇uh, $f, $model, $RT_degree)
+      σ, cell_time, patch_time = build_equilibrated_flux(-∇uh, f, model, RT_degree)
+      push!(cell_times, cell_time)
+      push!(patch_times, patch_time)
+      if compute_err_and_est
         η = compute_estimator(σ, -∇uh, model, soln_degree)
         e = compute_error(u, uh, model, soln_degree)
         @show η / e
       end
-      @show time_flux
-      #push!(times_dm, time_dm)
-      #push!(times_flux_total, time_flux)
-      #push!(times_cell_loop, time_cell_loop)
-      #push!(times_bdry_loops, time_bdry_loop)
-      #push!(times_int_loops, time_int_loop)
-      #time_ave = @elapsed σ_ave = build_averaged_flux(model, ∇uh)
-      #push!(times_flux_ave, time_ave)
-      #@time (H1err, est) = error_estimate(model, u, uh, ∇uh, σ, f, soln_degree)
       println("-----------------------------")
       #(H1err_ave, est_ave) = error_estimate(model, u, uh, ∇uh, σ_ave, f, soln_degree)
       #println("-----------------------------")
     end
   end
-  num_threads = Threads.nthreads()
-  #JLD2.save(joinpath(foldername, "results.jld2"), Base.@locals)
+  JLD2.save(joinpath(foldername, "results.jld2"), Base.@locals)
   return Base.@locals
 end
 
@@ -149,19 +135,19 @@ function main_CLI()
     dofs = [Int64(floor(desired_max_dofs / 4^k)) for k = 0:7]
     ns  = [get_n_for_m_dofs_degree_k(dof,k) for dof in dofs]
     @show ns
-    run_timing_test(ns, k, k, parsed_args["output-dir"])
+    run_timing_test(ns, k, k, parsed_args["output-dir"], true)
 end
 
 function dummy_main()
     k = 3
     desired_max_dofs = 100000
     contraction_factor = 4
-    min_dof = 0
+    min_dof = 1
     dofs = [Int64(floor(desired_max_dofs / contraction_factor^i)) for i = 0:min_dof]
     ns  = [get_n_for_m_dofs_degree_k(dof,k) for dof in dofs]
     @show ns
-    run_timing_test(ns, k, k, "test")
+    run_timing_test(ns, k, k, "test", true)
 end
 
-#main_CLI()
-dummy_main()
+main_CLI()
+#dummy_main()
