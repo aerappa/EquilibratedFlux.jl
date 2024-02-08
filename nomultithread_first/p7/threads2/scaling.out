@@ -1,0 +1,101 @@
+==========================================
+SLURM_JOB_ID = 2102905
+SLURM_JOB_NODELIST = node007
+==========================================
+Running Julia script with 2 thread(s) and order 7
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+┌ Warning: you passed a key as a symbol instead of a string, it has been automatically converted
+└ @ JLD2 ~/.julia/packages/JLD2/z3MOM/src/fileio.jl:10
+Using Revise
+Parsed args:
+  dofs  =>  5.0e6
+  output-dir  =>  nomultithread/p7/threads2
+  degree  =>  7
+ns = [320, 160, 81, 41, 21, 11, 6]
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 148.626113929
+dofs = 5013121
+Loop on cells
+cell_time = 282.740562743
+Loop on patches
+patch_time = 421.789492296
+η / e = 474.4149566615467
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 33.223057037
+dofs = 1252161
+Loop on cells
+cell_time = 67.952057729
+Loop on patches
+patch_time = 104.59958012
+η / e = 510.53522829795753
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 8.190029488
+dofs = 320356
+Loop on cells
+cell_time = 17.045007072
+Loop on patches
+patch_time = 26.574056622
+η / e = 511.0177794166859
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 2.069480099
+dofs = 81796
+Loop on cells
+cell_time = 4.284365418
+Loop on patches
+patch_time = 6.7133583219999995
+η / e = 503.12068891411354
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 0.460723228
+dofs = 21316
+Loop on cells
+cell_time = 1.092279884
+Loop on patches
+patch_time = 1.7146741520000002
+η / e = 476.1855664703487
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 0.121301425
+dofs = 5776
+Loop on cells
+cell_time = 0.330719645
+Loop on patches
+patch_time = 0.447083748
+η / e = 253.54041738345398
+-----------------------------
+Assemble and solve
+Threads.nthreads() = 2
+time_poisson = 0.036866758
+dofs = 1681
+Loop on cells
+cell_time = 0.138003646
+Loop on patches
+patch_time = 0.125905553
+η / e = 4.924806003062991
+-----------------------------
+Saving to nomultithread/p7/threads2/results.jld2
+Finished running with 2 thread(s) and order 7

@@ -1,0 +1,6 @@
+==========================================
+SLURM_JOB_ID = 2102884
+SLURM_JOB_NODELIST = node001
+==========================================
+Running Julia script with 1 thread(s) and order 7
+slurmstepd: error: *** JOB 2102884 ON node001 CANCELLED AT 2024-02-06T23:17:17 DUE TO TIME LIMIT ***
