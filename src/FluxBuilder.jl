@@ -146,7 +146,7 @@ function build_equilibrated_flux(
   co = cell_objects
   BLAS_nthreads = BLAS.get_num_threads()
   BLAS.set_num_threads(1)
-  σ_gls = [zeros(size(σ_gl)) for i = 1:Threads.nthreads()]
+  σ_gls = [zeros(size(σ_gl)) for i = 1:nchunks]
   #for patch in patches # Serial
   Threads.@threads for (patchid_range, ichunk) in chunks(1:length(patches), nchunks)
     for patchid in patchid_range
