@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Mesh refinement · EquilibratedFlux.jl</title><meta name="title" content="Mesh refinement · EquilibratedFlux.jl"/><meta property="og:title" content="Mesh refinement · EquilibratedFlux.jl"/><meta property="twitter:title" content="Mesh refinement · EquilibratedFlux.jl"/><meta name="description" content="Documentation for EquilibratedFlux.jl."/><meta property="og:description" content="Documentation for EquilibratedFlux.jl."/><meta property="twitter:description" content="Documentation for EquilibratedFlux.jl."/><meta property="og:url" content="https://aerappa.github.io/EquilibratedFlux.jl/examples/Lshaped/Lshaped/"/><meta property="twitter:url" content="https://aerappa.github.io/EquilibratedFlux.jl/examples/Lshaped/Lshaped/"/><link rel="canonical" href="https://aerappa.github.io/EquilibratedFlux.jl/examples/Lshaped/Lshaped/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">EquilibratedFlux.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../readme/readme/">Error estimation</a></li><li class="is-active"><a class="tocitem" href>Mesh refinement</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Mesh refinement</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Mesh refinement</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/aerappa/EquilibratedFlux.jl/blob/main/docs/src/examples/Lshaped/Lshaped.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Mesh-refinement"><a class="docs-heading-anchor" href="#Mesh-refinement">Mesh refinement</a><a id="Mesh-refinement-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-refinement" title="Permalink"></a></h1><p><a href="../Lshaped.ipynb"><img src="https://img.shields.io/badge/download-ipynb-blue" alt="ipynb"/></a> <a href="https://nbviewer.jupyter.org/github/aerappa/EquilibratedFlux.jl/blob/gh-pages/v0.1.1/examples/Lshaped/Lshaped.ipynb"><img src="https://img.shields.io/badge/show-nbviewer-blue.svg" alt="nbviewer"/></a></p><p>In this tutorial, we use the estimator obtained by the equilibrated flux to drive an adative mesh refinement (AMR) procedure.  We consider the Laplace problem</p><p class="math-container">\[\begin{align}
+-\Delta u &amp;= 0 &amp;&amp;\text{ in }\Omega\\
+u &amp;= g &amp;&amp;\text{ on }\partial\Omega
+\end{align}\]</p><p>on an L-shaped domain <span>$\Omega = (-1,1)^2 \setminus [(0,1)\times(-1,0)]$</span>.  We load this domain from a json file.</p><pre><code class="language-julia hljs">using Gridap, GridapMakie, CairoMakie
+
+model = DiscreteModelFromFile(&quot;Lshaped.json&quot;)
+Ω = Triangulation(model)
+
+fig = plot(Ω)
+wireframe!(Ω, color=:black, linewidth=2);
+fig</code></pre><img src="ae341576.png" alt="Example block output"/><p>In this case, we know the true solution <span>$u$</span> is given by the following formula in polar coordinates:</p><pre><code class="language-julia hljs">&quot;Have to convert from -[π, π] to [0, 2π]&quot;
+function θ(x)
+  θt = atan(x[2], x[1])
+  (θt &gt;= 0) * θt + (θt &lt; 0) * (θt + 2 * π)
+end
+
+r(x) = sqrt(x[1]^2 + x[2]^2)
+
+α = 2 / 3
+
+u(x) = r(x)^α * sin(θ(x) * α)
+u_fig, _ , plt = plot(Ω, u, colormap=:viridis)
+Colorbar(u_fig[1,2], plt)
+u_fig</code></pre><img src="c4efa30f.png" alt="Example block output"/><pre><code class="language-julia hljs">using Gridap.Geometry
+using Gridap.Adaptivity
+using EquilibratedFlux</code></pre><p>We define some helper functions for computing the L² norm in Gridap</p><pre><code class="language-julia hljs">L2_inner_product(f, g, dx) = ∫(f ⋅ g) * dx
+
+L2_norm_squared(f, dx) = L2_inner_product(f, f, dx)
+
+function L2_norm_squared(f, model, order)
+  degree = 2 * order + 2
+  Ω = Triangulation(model)
+  dx = Measure(Ω, degree)
+  L2_norm_squared(f, dx)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">L2_norm_squared (generic function with 2 methods)</code></pre><p>Next, we define the Dörfler marking[1]</p><pre><code class="language-julia hljs">function dorfler_marking(η_arr)
+  if η_arr isa Gridap.Arrays.LazyArray
+    η_arr = EquilibratedFlux.smart_collect(η_arr)
+  end
+  θ = 0.3 # Marking parameter
+  η_tot = sum(η_arr)
+  sorted_inds = sortperm(η_arr, rev = true)
+  sorted = η_arr[sorted_inds]
+  η_partial = 0.0
+  i = 1
+  while η_partial &lt;= θ * η_tot
+    η_partial += sorted[i]
+    i += 1
+  end
+  sorted_inds[1:i]
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">dorfler_marking (generic function with 1 method)</code></pre><p>As a small example, we show the result of calling <code>dorfler_marking</code></p><p>This step just corresponds almost exact to the contents of the <a href="https://gridap.github.io/Tutorials/dev/pages/t001_poisson/#Tutorial-1:-Poisson-equation-1">first Gridap.jl tutorial</a>.</p><pre><code class="language-julia hljs">function solve_laplace(model, order, g)
+  Ω = Triangulation(model)
+  degree = 2 * order + 2
+  dx = Measure(Ω, degree)
+  a(u, v) = ∫(∇(v) ⊙ ∇(u)) * dx
+  b(v) = ∫(v * 0.0) * dx
+  reffe = ReferenceFE(lagrangian, Float64, order)
+  V0 = TestFESpace(model, reffe; conformity = :H1, dirichlet_tags = &quot;boundary&quot;)
+  U = TrialFESpace(V0, g)
+  op = AffineFEOperator(a, b, U, V0)
+  uh = solve(op)
+  dofs = num_free_dofs(V0)
+  uh, dx, dofs
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">solve_laplace (generic function with 1 method)</code></pre><p>This function uses the EquilibratedFlux.jl package to obtain an error estimation on each cell of the mesh.</p><pre><code class="language-julia hljs">function estimate_laplace(uh, dx, model, order)
+    σ = build_equilibrated_flux(-∇(uh), x -&gt; 0.0, model, order)
+    #σ = build_averaged_flux(∇(uh), model)
+    η² = L2_norm_squared(σ + ∇(uh), dx)
+    Ω = Triangulation(model)
+    getindex(η², Ω)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">estimate_laplace (generic function with 1 method)</code></pre><p>Finally, this function puts the previous functions together into the standard Solve -&gt; Estimate -&gt; Mark -&gt; Refine loop of AFEM. The refinement step using newest vertex bisection can be selected using &quot;nvb&quot; with the keyword argument refinement_method. <span>$g$</span> is the function on the Dirichlet boundary.</p><pre><code class="language-julia hljs">function solve_estimate_mark_refine_laplace(model, tol, order; g)
+    η = Inf
+    estimators = Float64[]
+    errors = Float64[]
+    num_dofs = Float64[]
+    error_fields = CellField[]
+    while η &gt; tol
+        # We extract the internal model from the refined model
+        if model isa AdaptedDiscreteModel
+            model = model.model
+        end
+        # SOLVE
+        uh, dx, dofs = solve_laplace(model, order, g)
+        push!(num_dofs, dofs)
+        # ESTIMATE
+        η_arr = estimate_laplace(uh, dx, model, order)
+        H1err² = L2_norm_squared(∇(u - uh), dx)
+        Ω = Triangulation(model)
+        error_field = CellField(sqrt.(getindex(H1err², Ω)), Ω)
+        push!(error_fields, error_field)
+        H1err = √sum(H1err²)
+        η = √(sum(η_arr))
+        push!(estimators, η)
+        push!(errors, H1err)
+        # MARK
+        cells_to_refine = dorfler_marking(η_arr)
+        # REFINE
+        model = refine(model, refinement_method = &quot;nvb&quot;, cells_to_refine = cells_to_refine)
+
+    end
+    return error_fields, num_dofs, estimators, errors
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">solve_estimate_mark_refine_laplace (generic function with 1 method)</code></pre><p>We can change the polynomial order here as well as the tolerance for the estimator.</p><pre><code class="language-julia hljs">order = 2
+tol = 1e-4</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.0001</code></pre><p>We pass the true solution as the Dirichlet function <span>$g$</span></p><pre><code class="language-julia hljs">error_fields, num_dofs, estimators, errors = solve_estimate_mark_refine_laplace(model, tol, order, g = u);</code></pre><p>We now show that the AFEM refinement achieves the optimal rate of convergence of <span>$\mathrm{DOFs}^{-p/d} = \mathrm{DOFs}^{-p/2}$</span> in 2D.</p><pre><code class="language-julia hljs">fig = Figure()
+axis = Axis(fig[1,1], xscale = log10, yscale = log10, title = &quot;Order p=$order&quot;, xlabel = &quot;DOFs&quot;)
+lines!(axis, num_dofs, errors, label = &quot;Error&quot;)
+lines!(axis, num_dofs, estimators, label = &quot;Estimator&quot;)
+lines!(axis, num_dofs, num_dofs.^(-order / 2), label = &quot;Optimal rate&quot;)
+axislegend()
+fig</code></pre><img src="f3bb267a.png" alt="Example block output"/><p>Finally, the following animation shows the sequence of meshes generated by the adaptive refinement procedure. The refinement is clearly concentrated to the re-entrant corner.</p><pre><code class="language-julia hljs">let
+    idx = Observable(1)
+    Ωᵢ = lift(idx) do i
+        error_fields[i].trian
+    end
+    nDOFᵢ = lift(idx) do i
+        &quot;Iteration $i\n$(Int(num_dofs[i])) DOFs&quot;
+    end
+
+    fig, ax, plt = plot(Ωᵢ)
+    wireframe!(Ωᵢ, color=:black, linewidth=2)
+    text!(ax, (0.5, -0.5), text=nDOFᵢ, align=(:center, :center), justification=:left)
+
+    record(fig, &quot;animation.gif&quot;, eachindex(error_fields); framerate=2, compression=0) do i
+       idx[] = i
+    end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;animation.gif&quot;</code></pre><p><img src="../animation.gif" alt/></p><p>[1] Dörfler, W. A convergent adaptive algorithm for Poisson’s equation. SIAM Journal on Numerical Analysis 33, 3 (1996), 1106–1124</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../readme/readme/">« Error estimation</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Thursday 27 February 2025 12:11">Thursday 27 February 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
