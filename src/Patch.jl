@@ -88,11 +88,14 @@ function _get_patch_edge_ids(patch_cell_ids, cell_to_edge, cell_to_edge_cache)
   unique!(patch_edge_ids.data)
 end
 
-function _get_boundary_edges(patch_edge_ids, edge_to_node, edge_to_node_cache, i)
+function _get_boundary_edges(patch_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, is_boundary_patch)
   bdry_edge_ids = eltype(patch_edge_ids)[]
   for e in patch_edge_ids
-    nodes = getindex!(edge_to_node_cache, edge_to_node, e)
-    if i ∉ nodes
+    # internal boundary edges have an adjacent cell outside the patch
+    cells = getindex!(edge_to_cell_cache,edge_to_cell,e)
+    is_internal = !all([cell in patch_cell_ids for cell in cells])
+    # for internal vertices, global boundary edges are also constrained
+    if is_internal || (!is_boundary_patch && length(cells)==1)
       push!(bdry_edge_ids, e)
     end
   end
@@ -130,7 +133,7 @@ function create_patches(model, RT_order)
   node_to_cell = Geometry.get_faces(topo, 0, 2)
   cell_to_node = Geometry.get_faces(topo, 2, 0)
   cell_to_edge = Geometry.get_faces(topo, 2, 1)
-  edge_to_node = Geometry.get_faces(topo, 1, 0)
+  edge_to_cell = Geometry.get_faces(topo, 1, 2)
   #nodes_to_offsets = _get_nodes_to_offsets(model)
   # Type of the table, Int32 it seems
   T = eltype(cell_to_edge[1])
@@ -139,18 +142,15 @@ function create_patches(model, RT_order)
   node_to_cell_cache = array_cache(node_to_cell)
   cell_to_edge_cache = array_cache(cell_to_edge)
   cell_to_node_cache = array_cache(cell_to_node)
-  edge_to_node_cache = array_cache(edge_to_node)
+  edge_to_cell_cache = array_cache(edge_to_cell)
   num_nodes = length(node_to_cell)
   max_num_patch_cells = 0
   for i::T = 1:num_nodes
-    #is_boundary_edge_patch(e) = _is_boundary_edge_patch_i(e, i)
+    is_boundary = is_boundary_node(i)
     patch_cell_ids = getindex!(node_to_cell_cache, node_to_cell, i)
     all_edge_ids = _get_patch_edge_ids(patch_cell_ids, cell_to_edge, cell_to_edge_cache)
     max_num_patch_cells = max(max_num_patch_cells, length(patch_cell_ids))
-    # TODO: For now the connectivity is always giving the correct boundary
-    # edges because it only includes nodes that are not adjacent to the current
-    # node. This is asssuming Dirichlet boundary conditions everywhere
-    bdry_edge_ids = _get_boundary_edges(all_edge_ids, edge_to_node, edge_to_node_cache, i)
+    bdry_edge_ids = _get_boundary_edges(all_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, is_boundary)
     #all_dofs = _get_edge_dofs(patch_edge_ids, dofs_per_edge)
     node_to_offsets = _get_node_to_offsets(
       i,
@@ -161,7 +161,7 @@ function create_patches(model, RT_order)
     )
     # Copy needed because otherwise modifying the underlying array
     data = PatchData(node_to_offsets, copy(patch_cell_ids), bdry_edge_ids, all_edge_ids)
-    if is_boundary_node(i)
+    if is_boundary
       patch = DirichletPatch(data)
       #filter!(!is_boundary_edge, bdry_edge_ids)
     else
