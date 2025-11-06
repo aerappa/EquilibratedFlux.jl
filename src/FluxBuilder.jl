@@ -148,7 +148,8 @@ function build_equilibrated_flux(
   BLAS.set_num_threads(1)
   σ_gls = [zeros(size(σ_gl)) for i = 1:nchunks]
   #for patch in patches # Serial
-  Threads.@threads for (patchid_range, ichunk) in chunks(1:length(patches), nchunks)
+  # Threads.@threads for (patchid_range, ichunk) in chunks(1:length(patches), nchunks)
+  Threads.@threads for (ichunk, patchid_range) in enumerate(index_chunks(1:length(patches); n=nchunks))
     for patchid in patchid_range
       #tid = Threads.threadid()
       linalg = linalgs[ichunk]
