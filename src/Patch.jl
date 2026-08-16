@@ -3,6 +3,7 @@ using Gridap.Geometry
 abstract type Patch{T} end
 
 struct PatchData{T}
+  vertex_id::T
   node_to_offsets::Vector{T}
   patch_cell_ids::Vector{T}
   bdry_edge_ids::Vector{T}
@@ -17,11 +18,22 @@ struct InteriorPatch{T} <: Patch{T}
   data::PatchData{T}
 end
 
-# TODO: Implement
+# Patch centered at a vertex lying strictly in the interior of the Neumann
+# boundary ΓN (i.e. none of its incident boundary edges lie on ΓD). Like
+# InteriorPatch, this is a "closed" (pure Neumann) local problem and needs a
+# Lagrange multiplier for solvability. `edge_ids` are this vertex's own
+# directly incident boundary edges (all lying on ΓN); `dof_ids`/`dof_values`
+# hold the ψ_a-weighted prescribed (essential) RT dof data on those edges,
+# filled in by `compute_neumann_lift` once the Neumann datum is known.
 struct NeumannPatch{T} <: Patch{T}
   data::PatchData{T}
-  bdry_data::Vector{Float64}
+  edge_ids::Vector{T}
+  dof_ids::Vector{Int}
+  dof_values::Vector{Float64}
 end
+
+NeumannPatch(data::PatchData{T}, edge_ids::Vector{T}) where {T} =
+  NeumannPatch(data, edge_ids, Int[], Float64[])
 
 function _is_interior_object(i, d, labels)
   entity_idx_i = labels.d_to_dface_to_entity[d][i]
@@ -88,6 +100,25 @@ function _get_patch_edge_ids(patch_cell_ids, cell_to_edge, cell_to_edge_cache)
   unique!(patch_edge_ids.data)
 end
 
+#=
+Boundary edges directly incident to vertex `i` (i.e. edges of the mesh, on
+∂Ω, that have `i` as one of their two endpoints). These are exactly the
+edges whose RT dof is jointly owned by `i`'s patch and its edge-neighbor's
+patch (as opposed to the "opposite" boundary edges handled by
+`_get_boundary_edges`, which belong entirely to other vertices' patches).
+=#
+function _get_direct_boundary_edges(i, node_to_edge, edge_to_cell, node_to_edge_cache, edge_to_cell_cache)
+  incident_edges = getindex!(node_to_edge_cache, node_to_edge, i)
+  direct_bdry_edges = eltype(incident_edges)[]
+  for e in incident_edges
+    cells = getindex!(edge_to_cell_cache, edge_to_cell, e)
+    if length(cells) == 1
+      push!(direct_bdry_edges, e)
+    end
+  end
+  direct_bdry_edges
+end
+
 function _get_boundary_edges(patch_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, is_boundary_patch)
   bdry_edge_ids = eltype(patch_edge_ids)[]
   for e in patch_edge_ids
@@ -123,7 +154,7 @@ function test_edge_dof_consistency(model, RT_order, RT_space)
   end
 end
 
-function create_patches(model, RT_order)
+function create_patches(model, RT_order; neumann_tags = String[])
   labels = get_face_labeling(model)
   #is_boundary_edge(e) = _is_boundary_edge_labels(e, labels)
   is_boundary_node(i) = _is_boundary_node_labels(i, labels)
@@ -134,15 +165,20 @@ function create_patches(model, RT_order)
   cell_to_node = Geometry.get_faces(topo, 2, 0)
   cell_to_edge = Geometry.get_faces(topo, 2, 1)
   edge_to_cell = Geometry.get_faces(topo, 1, 2)
+  node_to_edge = Geometry.get_faces(topo, 0, 1)
   #nodes_to_offsets = _get_nodes_to_offsets(model)
   # Type of the table, Int32 it seems
   T = eltype(cell_to_edge[1])
+  is_neumann_edge =
+    isempty(neumann_tags) ? falses(length(edge_to_cell)) :
+    Geometry.get_face_mask(labels, neumann_tags, 1)
   patches = Patch[]
   # Need to declare caches first to prevent reinstatiation
   node_to_cell_cache = array_cache(node_to_cell)
   cell_to_edge_cache = array_cache(cell_to_edge)
   cell_to_node_cache = array_cache(cell_to_node)
   edge_to_cell_cache = array_cache(edge_to_cell)
+  node_to_edge_cache = array_cache(node_to_edge)
   num_nodes = length(node_to_cell)
   max_num_patch_cells = 0
   for i::T = 1:num_nodes
@@ -160,10 +196,22 @@ function create_patches(model, RT_order)
       node_to_cell_cache,
     )
     # Copy needed because otherwise modifying the underlying array
-    data = PatchData(node_to_offsets, copy(patch_cell_ids), bdry_edge_ids, all_edge_ids)
+    data = PatchData(i, node_to_offsets, copy(patch_cell_ids), bdry_edge_ids, all_edge_ids)
     if is_boundary
-      patch = DirichletPatch(data)
-      #filter!(!is_boundary_edge, bdry_edge_ids)
+      direct_edges =
+        _get_direct_boundary_edges(i, node_to_edge, edge_to_cell, node_to_edge_cache, edge_to_cell_cache)
+      n_neumann = count(e -> is_neumann_edge[e], direct_edges)
+      if n_neumann == 0
+        patch = DirichletPatch(data)
+      elseif n_neumann == length(direct_edges)
+        patch = NeumannPatch(data, direct_edges)
+      else
+        error(
+          "Vertex $i lies on the interface between the Dirichlet and Neumann " *
+          "boundaries. EquilibratedFlux.jl does not yet support Neumann/Dirichlet " *
+          "interface vertices.",
+        )
+      end
     else
       patch = InteriorPatch(data)
     end

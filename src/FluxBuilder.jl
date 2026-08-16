@@ -9,22 +9,36 @@ using ChunkSplitters
 
 #const to = TimerOutput()
 #
-function build_equilibrated_flux(𝐀ₕ, f, model::AdaptedDiscreteModel, RT_order; 
-    measure = nothing, weight = 1.0)
-  build_equilibrated_flux(𝐀ₕ, f, model.model, RT_order, measure = measure, weight = weight)
+function build_equilibrated_flux(𝐀ₕ, f, model::AdaptedDiscreteModel, RT_order;
+    measure = nothing, weight = 1.0, neumann_tags = String[], neumann_data = nothing)
+  build_equilibrated_flux(𝐀ₕ, f, model.model, RT_order, measure = measure, weight = weight,
+    neumann_tags = neumann_tags, neumann_data = neumann_data)
 end
 
 
 """
-    build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0)
+    build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0,
+                             neumann_tags = String[], neumann_data = nothing)
 
 TODO: relevant docstring
+
+`neumann_tags` marks the part ΓN of the boundary (as model face labeling
+tags) where an inhomogeneous Neumann condition `-∇u⋅n = σN` holds; the rest
+of the boundary is assumed to be (possibly inhomogeneous) Dirichlet. When
+given, `neumann_data` must be a function `x -> VectorValue` giving the
+physical flux `σN(x)⋅n(x)` (e.g. `-∇u_exact` for a manufactured solution),
+matching the `𝐀ₕ = -∇(uh)` convention used elsewhere in this package.
+Vertices lying on the interface between the Dirichlet and Neumann parts of
+the boundary are not yet supported.
 """
-function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0)
+function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0,
+    neumann_tags = String[], neumann_data = nothing)
   topo = get_grid_topology(model)
   @assert all(p->p==TRI,get_polytopes(topo))
-  patches, metadata = create_patches(model, RT_order)
+  @assert isempty(neumann_tags) || !isnothing(neumann_data) "neumann_data must be given when neumann_tags is non-empty"
+  patches, metadata = create_patches(model, RT_order; neumann_tags = neumann_tags)
   spaces = build_global_spaces(model, RT_order)
+  patches = compute_neumann_lift(patches, model, spaces, RT_order, neumann_tags, neumann_data)
   cell_objects = build_all_cellwise_objects(𝐀ₕ, f, weight, spaces, model, RT_order, measure)
   linalgs = [instantiate_linalg(RT_order, 2, metadata) for i = 1:Threads.nthreads()]
   dms = build_DOFManagers(spaces)
@@ -33,8 +47,11 @@ function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing,
     filter(patch -> patch isa DirichletPatch, patches)
   int_patches::Vector{InteriorPatch{Int32}} =
     filter(patch -> patch isa InteriorPatch, patches)
+  neu_patches::Vector{NeumannPatch{Int32}} =
+    filter(patch -> patch isa NeumannPatch, patches)
   build_equilibrated_flux(diri_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
   build_equilibrated_flux(int_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
+  build_equilibrated_flux(neu_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
   σ_gl
 end
 
@@ -168,8 +185,23 @@ function build_equilibrated_flux(
       vector_scatter!(linalg.RHS_RT, co.cell_RHS_RTs, dm_RT, patch.data)
       vector_scatter!(linalg.RHS_L², co.cell_RHS_L²s, dm_L², patch.data)
       single_vector_scatter!(linalg.Λ, co.cell_Λ_vecs, dm_L², patch.data)
+      ## Neumann patches: their own directly-incident ΓN edges carry a
+      ## prescribed (essential), generally nonzero, RT normal trace. Locate
+      ## their local positions *before* any dof is removed from dm_RT (both
+      ## this and the homogeneous removal below shrink dm_RT.patch_dofs_gl,
+      ## which would otherwise invalidate position-based lookups), lift
+      ## their contribution into the RHS, then remove them afterwards.
+      if patch isa NeumannPatch
+        neu_local = find_local_dof_positions(dm_RT, patch.dof_ids)
+        g_fixed = patch.dof_values
+        linalg.RHS_RT .-= linalg.M[:, neu_local] * g_fixed
+        linalg.RHS_L² .-= transpose(linalg.B[neu_local, :]) * g_fixed
+      end
       ## Now that scatter to local system is complete, remove fixed dofs
       remove_homogeneous_neumann_dofs!(dm_RT, patch.data, RT_order)
+      if patch isa NeumannPatch
+        remove_prescribed_dofs!(dm_RT, patch.dof_ids, neu_local)
+      end
       ## Count the free dofs for this patch once the BCs are imposed
       n_free_dofs_RT = count_free_dofs(dm_RT)
       n_free_dofs_L² = count_free_dofs(dm_L²)
@@ -177,14 +209,22 @@ function build_equilibrated_flux(
       ## Use the sub-matrices and vectors generated from the scatters to build
       ## the monolithic objects
       setup_patch_system!(linalg.A, linalg.RHS, linalg, dm_RT, dm_L²)
-      ## Handle the pure Neumann case
-      if patch isa InteriorPatch
+      ## Handle the pure Neumann case (fully-interior or fully-ΓN patches)
+      if patch isa InteriorPatch || patch isa NeumannPatch
         add_lagrange!(linalg.A, dm_RT, dm_L², linalg.Λ)
         n_free_dofs += 1
       end
       solve_patch!(linalg, n_free_dofs)
       ## Scatter to the global FE object's free_values
       scatter_to_global_σ!(σ_gl_chunk, dm_RT, linalg.σ_loc, n_free_dofs_RT)
+      ## Directly assign the prescribed (Neumann-lifted) dof contributions;
+      ## each shared ΓN edge accumulates the ψₐ-weighted share from both of
+      ## its endpoint patches, recovering the full σN moment on that edge.
+      if patch isa NeumannPatch
+        for (gdof, val) in zip(patch.dof_ids, patch.dof_values)
+          σ_gl_chunk[gdof] += val
+        end
+      end
     end
   end
   σ_gl .+= sum(σ_gls)
