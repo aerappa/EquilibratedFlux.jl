@@ -119,14 +119,31 @@ function _get_direct_boundary_edges(i, node_to_edge, edge_to_cell, node_to_edge_
   direct_bdry_edges
 end
 
-function _get_boundary_edges(patch_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, is_boundary_patch)
+#=
+Edges of the patch on which the reconstruction's normal trace must be
+essentially zero: the hat function ψ (of the patch's own center vertex)
+vanishes identically there, either because the edge borders a cell outside
+the patch ("internal" edges, opposite the center vertex within some patch
+triangle) or because it is a domain-boundary edge not directly incident to
+the center vertex (also an "opposite" edge, just one that happens to lie on
+∂Ω instead of inside Ω). The latter case was, prior to Neumann-boundary
+support, only checked for interior-vertex patches (via `direct_edges`,
+always empty there) because boundary (Dirichlet) patches never needed the
+resulting essential condition to be exact for well-posedness; it applies
+identically to boundary-vertex patches too, and now genuinely matters since
+NeumannPatch relies on it for exact patch-local compatibility.
+=#
+function _get_boundary_edges(patch_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, direct_edges)
   bdry_edge_ids = eltype(patch_edge_ids)[]
   for e in patch_edge_ids
-    # internal boundary edges have an adjacent cell outside the patch
+    # internal edges have an adjacent cell outside the patch
     cells = getindex!(edge_to_cell_cache,edge_to_cell,e)
     is_internal = !all([cell in patch_cell_ids for cell in cells])
-    # for internal vertices, global boundary edges are also constrained
-    if is_internal || (!is_boundary_patch && length(cells)==1)
+    # domain-boundary edges not directly incident to the center vertex are
+    # opposite edges too, regardless of whether the center vertex is itself
+    # on the boundary
+    is_opposite_domain_boundary = length(cells) == 1 && !(e in direct_edges)
+    if is_internal || is_opposite_domain_boundary
       push!(bdry_edge_ids, e)
     end
   end
@@ -172,6 +189,29 @@ function create_patches(model, RT_order; neumann_tags = String[])
   is_neumann_edge =
     isempty(neumann_tags) ? falses(length(edge_to_cell)) :
     Geometry.get_face_mask(labels, neumann_tags, 1)
+  # TODO: mixed Dirichlet/Neumann boundaries (i.e. genuinely inhomogeneous
+  # BCs, with |ΓD| > 0 and |ΓN| > 0 simultaneously) are not yet supported —
+  # see the interface-vertex handling this would require in the per-vertex
+  # loop below. For now, reject any neumann_tags that mark a strict, nonempty
+  # subset of ∂Ω, rather than only failing once an interface vertex happens
+  # to be reached, since that alone would not catch e.g. a multiply-connected
+  # domain where ΓD and ΓN are separate boundary components with no shared
+  # vertex at all.
+  if !isempty(neumann_tags)
+    edge_to_cell_cache_bc = array_cache(edge_to_cell)
+    n_boundary_edges = count(
+      e -> length(getindex!(edge_to_cell_cache_bc, edge_to_cell, e)) == 1,
+      1:length(edge_to_cell),
+    )
+    n_neumann_edges = count(is_neumann_edge)
+    if 0 < n_neumann_edges < n_boundary_edges
+      error(
+        "EquilibratedFlux.jl does not yet support a physical boundary with " *
+        "both Dirichlet and Neumann parts. `neumann_tags` must mark either " *
+        "the entire boundary (pure Neumann) or none of it (pure Dirichlet).",
+      )
+    end
+  end
   patches = Patch[]
   # Need to declare caches first to prevent reinstatiation
   node_to_cell_cache = array_cache(node_to_cell)
@@ -186,7 +226,10 @@ function create_patches(model, RT_order; neumann_tags = String[])
     patch_cell_ids = getindex!(node_to_cell_cache, node_to_cell, i)
     all_edge_ids = _get_patch_edge_ids(patch_cell_ids, cell_to_edge, cell_to_edge_cache)
     max_num_patch_cells = max(max_num_patch_cells, length(patch_cell_ids))
-    bdry_edge_ids = _get_boundary_edges(all_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, is_boundary)
+    # empty for interior vertices, since no edge touching them can lie on ∂Ω
+    direct_edges =
+      _get_direct_boundary_edges(i, node_to_edge, edge_to_cell, node_to_edge_cache, edge_to_cell_cache)
+    bdry_edge_ids = _get_boundary_edges(all_edge_ids, patch_cell_ids, edge_to_cell, edge_to_cell_cache, direct_edges)
     #all_dofs = _get_edge_dofs(patch_edge_ids, dofs_per_edge)
     node_to_offsets = _get_node_to_offsets(
       i,
@@ -198,14 +241,16 @@ function create_patches(model, RT_order; neumann_tags = String[])
     # Copy needed because otherwise modifying the underlying array
     data = PatchData(i, node_to_offsets, copy(patch_cell_ids), bdry_edge_ids, all_edge_ids)
     if is_boundary
-      direct_edges =
-        _get_direct_boundary_edges(i, node_to_edge, edge_to_cell, node_to_edge_cache, edge_to_cell_cache)
       n_neumann = count(e -> is_neumann_edge[e], direct_edges)
       if n_neumann == 0
         patch = DirichletPatch(data)
       elseif n_neumann == length(direct_edges)
         patch = NeumannPatch(data, direct_edges)
       else
+        # TODO: remove once mixed Dirichlet/Neumann boundaries are supported
+        # (see the neumann_tags check above, which rejects this case up
+        # front for the common single-boundary-component case); this is a
+        # defense-in-depth backstop for topologies that check could miss.
         error(
           "Vertex $i lies on the interface between the Dirichlet and Neumann " *
           "boundaries. EquilibratedFlux.jl does not yet support Neumann/Dirichlet " *

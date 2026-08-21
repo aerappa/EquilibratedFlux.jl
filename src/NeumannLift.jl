@@ -19,20 +19,6 @@ vertex position within a cell), compute the lift using the field that
 equals, on each cell, that cell's i-th local P1 basis function. Restricted
 to any given patch's own cells, and picking out the correct local position
 per cell via `node_to_offsets`, this reproduces exactly ψₐ.
-
-KNOWN LIMITATION: the values computed here (`dof_values`) have been checked
-against independent per-vertex reference computations and are exact, and
-the underlying Galerkin compatibility identity these values are meant to
-satisfy has separately been checked (via direct integration, bypassing this
-RT/L² machinery entirely) to hold to machine precision. Nonetheless, once a
-NeumannPatch's bordered (Lagrange-multiplier) local system is actually
-solved in FluxBuilder.jl, its multiplier comes out non-negligible (unlike
-InteriorPatch's, which is machine-precision zero), and the equilibrium
-property (8.5b) is only satisfied up to a small, mesh-convergent residual
-rather than exactly. The discrepancy has not been isolated; it likely lies
-in how the bordered system behaves when a patch has both zero-essential
-*and* nonzero-essential (lifted) RT dofs simultaneously, a combination
-InteriorPatch never exercises. See test/neumanntest.jl.
 =#
 function compute_neumann_lift(patches, model, spaces, RT_order, neumann_tags, neumann_data)
   if isempty(neumann_tags)

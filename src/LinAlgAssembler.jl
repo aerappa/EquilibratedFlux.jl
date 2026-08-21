@@ -61,5 +61,9 @@ function instantiate_linalg(RT_order, dim, metadata)
   RHS = instantiate_RHS(RHS_RT, RHS_L²)
   Λ = similar(RHS_L²)
   σ_loc = similar(RHS)
-  (; M, B, A, ws, Λ, RHS_RT, RHS_L², RHS, σ_loc)
+  # A boundary vertex has exactly 2 directly-incident boundary edges, so a
+  # NeumannPatch never prescribes more than 2*(RT_order+1) RT dofs; this
+  # buffer lets find_local_dof_positions!/the Neumann lift avoid allocating.
+  neu_local_buf = zeros(Int, 2 * (RT_order + 1))
+  (; M, B, A, ws, Λ, RHS_RT, RHS_L², RHS, σ_loc, neu_local_buf)
 end
