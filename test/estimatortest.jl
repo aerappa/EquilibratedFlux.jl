@@ -22,6 +22,8 @@ let
     solve(op_proj)
   end
 
+  dim = 2
+
   for order = 1:5
     for n = 5:5:40
       #n = 10 # Number of elements in x and y for square mesh
@@ -35,7 +37,6 @@ let
       f(x) = 5 * pi^2 * u(x) # = -Δu
 
       # Polynomial order
-      order = 2
       degree = 2 * order + 2
       dx = Measure(𝓣ₕ, degree)
       reffe = ReferenceFE(lagrangian, Float64, order)
@@ -45,11 +46,16 @@ let
       b(v) = ∫(v * f) * dx
       op = AffineFEOperator(a, b, U, V0)
       uh = solve(op)
-      σ_eq = build_equilibrated_flux(-∇(uh), f, model, order);
-      σ_ave = build_averaged_flux(-∇(uh), model)
-      η_ave = L2_norm_squared(σ_ave + ∇(uh), dx) |> sum |> sqrt
       H1err = L2_norm_squared(∇(u - uh), dx) |> sum |> sqrt
+      
+      # perform different flux equilibrations
+      η_loc, σ_eq = build_equilibrated_flux(-∇(uh), f, model, order; return_contributions=true)
+      σ_ave = build_averaged_flux(-∇(uh), model)
+      η_vertex = sqrt(sum(η_loc) * (dim+1))
+      η_ave = L2_norm_squared(σ_ave + ∇(uh), dx) |> sum |> sqrt
       η_eq = L2_norm_squared(σ_eq + ∇(uh), dx) |> sum |> sqrt
+
+      @test η_vertex > H1err
       @test η_eq > H1err
       eff = η_eq / H1err
       @test isapprox(eff, 1.0, atol=1e-2)

@@ -1,4 +1,5 @@
 using LinearAlgebra
+using Gridap
 using Gridap.Adaptivity
 using ChunkSplitters
 #using TimerOutputs
@@ -10,8 +11,8 @@ using ChunkSplitters
 #const to = TimerOutput()
 #
 function build_equilibrated_flux(𝐀ₕ, f, model::AdaptedDiscreteModel, RT_order; 
-    measure = nothing, weight = 1.0)
-  build_equilibrated_flux(𝐀ₕ, f, model.model, RT_order, measure = measure, weight = weight)
+    measure = nothing, weight = 1.0, return_contributions=false)
+  build_equilibrated_flux(𝐀ₕ, f, model.model, RT_order, measure = measure, weight = weight, return_contributions = return_contributions)
 end
 
 
@@ -20,7 +21,7 @@ end
 
 TODO: relevant docstring
 """
-function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0)
+function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0, return_contributions=false)
   topo = get_grid_topology(model)
   @assert all(p->p==TRI,get_polytopes(topo))
   patches, metadata = create_patches(model, RT_order)
@@ -33,9 +34,13 @@ function build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing,
     filter(patch -> patch isa DirichletPatch, patches)
   int_patches::Vector{InteriorPatch{Int32}} =
     filter(patch -> patch isa InteriorPatch, patches)
-  build_equilibrated_flux(diri_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
-  build_equilibrated_flux(int_patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms)
-  σ_gl
+  η_loc = return_contributions ? zeros(length(patches)) : nothing
+  build_equilibrated_flux(patches, σ_gl.free_values, linalgs, cell_objects, RT_order, dms; η=η_loc)
+  if return_contributions
+    return η_loc, σ_gl # η_loc contains the squared norms 0.5 * (σ_loc - Ah)^2 for each patch
+  else
+    return σ_gl
+  end
 end
 
 function matrix_scatter!(patch_mat, cell_mats, dm_col, dm_row, patch_data)
@@ -93,6 +98,15 @@ function setup_patch_system!(A, RHS, linalg, dm_RT, dm_L²)
     transpose(@view linalg.B[free_patch_dofs_RT, free_patch_dofs_L²])
 end
 
+function patch_hat_Ah2_contribution(patch_data, cell_Ah2_diags)
+  s = 0.0
+  node_to_offsets = patch_data.node_to_offsets
+  for (i, cellid) in enumerate(patch_data.patch_cell_ids)
+    s += cell_Ah2_diags[cellid, node_to_offsets[i]]
+  end
+  s
+end
+
 function count_free_dofs(dm::DOFManager)
   free_patch_dofs = dm.free_patch_dofs_loc
   length(free_patch_dofs)
@@ -140,7 +154,8 @@ function build_equilibrated_flux(
   cell_objects,
   RT_order,
   (dm_RTs, dm_L²s);
-  nchunks=Threads.nthreads() # TODO: Consider different chunk sizes?
+  nchunks=Threads.nthreads(), # TODO: Consider different chunk sizes?
+  η=nothing
 )
   #println("Loop on patches")
   co = cell_objects
@@ -148,8 +163,7 @@ function build_equilibrated_flux(
   BLAS.set_num_threads(1)
   σ_gls = [zeros(size(σ_gl)) for i = 1:nchunks]
   #for patch in patches # Serial
-  # Threads.@threads for (patchid_range, ichunk) in chunks(1:length(patches), nchunks)
-  Threads.@threads for (ichunk, patchid_range) in enumerate(index_chunks(1:length(patches); n=nchunks))
+  Threads.@threads for (patchid_range, ichunk) in chunks(1:length(patches), nchunks)
     for patchid in patchid_range
       #tid = Threads.threadid()
       linalg = linalgs[ichunk]
@@ -185,11 +199,22 @@ function build_equilibrated_flux(
       solve_patch!(linalg, n_free_dofs)
       ## Scatter to the global FE object's free_values
       scatter_to_global_σ!(σ_gl_chunk, dm_RT, linalg.σ_loc, n_free_dofs_RT)
+
+      if !isnothing(η)
+        ## compute 0.5 * norm(σ_loc  - Ah)^2 contribution
+        free_patch_dofs_RT = dm_RT.free_patch_dofs_loc
+        σ_RT = linalg.σ_loc[1:n_free_dofs_RT]
+        M_RT = @view linalg.M[free_patch_dofs_RT, free_patch_dofs_RT]
+        RHS_RT = @view linalg.RHS_RT[free_patch_dofs_RT]
+        η[patchid] = 0.5 * dot(M_RT* σ_RT, σ_RT)
+        @assert η[patchid] >= -1e-12
+        η[patchid] -= dot(σ_RT, RHS_RT)
+        η[patchid] += 0.5 * patch_hat_Ah2_contribution(patch.data, co.cell_Ah2_diags)
+        @assert η[patchid] >= -1e-12
+      end
     end
   end
   σ_gl .+= sum(σ_gls)
-  #patch::DirichletPatch = patches[1]
-  #@show to
   BLAS.set_num_threads(BLAS_nthreads)
-  σ_gl
+  η, σ_gl
 end

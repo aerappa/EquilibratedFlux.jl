@@ -48,6 +48,21 @@ function _build_cellwise_matrices(duRT, weight, dvRT, dvp, Qₕ)
   cell_mass_mats, cell_mixed_mats
 end
 
+function _build_cellwise_Ah2_diagonals(𝐀ₕ, model, weight, Qₕ)
+  hat_fns_on_cells = _get_hat_functions_on_cells(model)
+  Ah2_form(ψ) = ∫(weight * ψ * ψ * (𝐀ₕ ⊙ 𝐀ₕ)) * Qₕ
+  cur_num_cells = num_cells(model)
+  # Hardcoded for triangles
+  nodes_per_cell = 3
+  cell_Ah2_diags = zeros(Float64, cur_num_cells, nodes_per_cell)
+  for i = 1:nodes_per_cell
+    ψᵢ = _get_hat_function_cellfield(i, hat_fns_on_cells, model)
+    cell_Ah2 = Ah2_form(ψᵢ)
+    cell_Ah2_diags[:, i] = parallel_smart_collect(cell_Ah2)
+  end
+  cell_Ah2_diags
+end
+
 function _build_lagange_row(dvp, Qₕ)
   #cur_num_cells = num_cells(model)
   #cell_Λ_vecs = Matrix{Vector{Float64}}(undef, cur_num_cells, 1)
@@ -69,6 +84,7 @@ function build_all_cellwise_objects(𝐀ₕ, f, weight, spaces, model, RT_order,
   args = (weight, dvRT, dvp, Qₕ)
   cell_mass_mats, cell_mixed_mats = _build_cellwise_matrices(duRT, args...)
   cell_RHS_RTs, cell_RHS_L²s = _build_patch_RHS_vectors(𝐀ₕ, f, model, args...)
+  cell_Ah2_diags = _build_cellwise_Ah2_diagonals(𝐀ₕ, model, weight, Qₕ)
   cell_Λ_vecs = _build_lagange_row(dvp, Qₕ)
-  (; cell_mass_mats, cell_Λ_vecs, cell_mixed_mats, cell_RHS_RTs, cell_RHS_L²s)
+  (; cell_mass_mats, cell_Λ_vecs, cell_mixed_mats, cell_RHS_RTs, cell_RHS_L²s, cell_Ah2_diags)
 end
