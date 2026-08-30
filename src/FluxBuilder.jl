@@ -20,7 +20,18 @@ end
     build_equilibrated_flux(𝐀ₕ, f, model, RT_order; measure = nothing, weight= 1.0,
                              neumann_tags = String[], neumann_data = nothing)
 
-TODO: relevant docstring
+Builds the equilibrated flux reconstruction `σ_eq ∈ H(div, Ω)` (as a
+Raviart-Thomas `FEFunction` of order `RT_order`) associated with a
+conforming approximation `uh` of the Poisson problem `-∇⋅(weight*∇u) = f`,
+by solving small mixed finite element problems on vertex-centered patches
+of `model`. `𝐀ₕ` is the numerical flux to reconstruct, typically
+`-∇(uh)` (or `-weight*∇(uh)` for a non-unit `weight`); `f` is the source
+term. `σ_eq` satisfies `∇⋅σ_eq = f` exactly for piecewise polynomial `f`
+of degree `RT_order`, and `σ_eq ≈ 𝐀ₕ` in the sense that
+`‖σ_eq - 𝐀ₕ‖` provides a reliable and efficient a posteriori error
+estimator for `‖∇(u - uh)‖` (see the package tutorials for details).
+`measure` overrides the default quadrature (`degree = 2*RT_order + 2`) used
+to assemble the patch problems.
 
 `neumann_tags` marks the part ΓN of the boundary (as model face labeling
 tags) where an inhomogeneous Neumann condition `-∇u⋅n = σN` holds. When

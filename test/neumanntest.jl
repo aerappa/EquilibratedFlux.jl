@@ -57,7 +57,7 @@ let
     eff = η_eq / H1err
     @test isapprox(eff, 1.0, atol = 5e-2)
 
-    # equilibrium property (8.5b): ∇⋅σ_eq should exactly reproduce f
+    # equilibrium property: ∇⋅σ_eq should exactly reproduce f
     reffeL² = ReferenceFE(lagrangian, Float64, order)
     VL² = FESpace(model, reffeL²; conformity = :L2)
     mL²(u, v) = ∫(u * v) * dΩ
