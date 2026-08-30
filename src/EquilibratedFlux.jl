@@ -10,6 +10,7 @@ include("Util.jl")
 include("DOFManager.jl")
 include("LinAlgAssembler.jl")
 include("AveragedFlux.jl")
+include("NeumannLift.jl")
 include("FluxBuilder.jl")
 
 export build_equilibrated_flux

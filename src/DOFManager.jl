@@ -34,7 +34,7 @@ function update_cell_local_dofs!(dm::DOFManager, cellid)
   cur_cell_dofs_gl = @view dm.all_cell_dofs_gl[cellid, :]
   empty!(dm.cell_dofs_loc)
   for id in cur_cell_dofs_gl
-    new_id = findfirst(n -> n == id, dm.patch_dofs_gl)
+    new_id = findfirst_eq(id, dm.patch_dofs_gl)
     new_id isa Nothing && error("Cannot update cell local dofs!")
     push!(dm.cell_dofs_loc, new_id)
   end
@@ -78,9 +78,9 @@ function remove_homogeneous_neumann_dofs!(dm, patch_data, RT_order)
     # Enumerate all dofs on the given edge
     for i = 0:(dofs_per_edge-1)
       bdry_edge_dof = (edge_id * dofs_per_edge) - i
-      local_edge_dof = findfirst(n -> n == bdry_edge_dof, patch_dofs_gl)
+      local_edge_dof = findfirst_eq(bdry_edge_dof, patch_dofs_gl)
       local_edge_dof isa Nothing && error("local_edge_dof cannot be computed!")
-      local_edge_dof_idx = findfirst(n -> n == local_edge_dof, free_patch_dofs_loc)
+      local_edge_dof_idx = findfirst_eq(local_edge_dof, free_patch_dofs_loc)
       local_edge_dof_idx isa Nothing && error("local_edge_dof cannot be computed!")
       deleteat!(free_patch_dofs_loc,  local_edge_dof_idx)
       #@timeit to "filter" filter!(n -> n ≠ local_edge_dof, free_patch_dofs_loc)
@@ -91,7 +91,7 @@ function remove_homogeneous_neumann_dofs!(dm, patch_data, RT_order)
     # Enumerate all dofs on the given edge
     for i = 0:(dofs_per_edge-1)
       bdry_edge_dof = (edge_id * dofs_per_edge) - i
-      edge_dof_idx = findfirst(n -> n == bdry_edge_dof, patch_dofs_gl)
+      edge_dof_idx = findfirst_eq(bdry_edge_dof, patch_dofs_gl)
       edge_dof_idx isa Nothing && error("local_edge_dof cannot be computed!")
       deleteat!(patch_dofs_gl, edge_dof_idx)
       #filter!(n -> n ≠ edge_dof, patch_dofs_gl)
@@ -100,6 +100,57 @@ function remove_homogeneous_neumann_dofs!(dm, patch_data, RT_order)
   #@show length(dm.patch_dofs_gl) 
   #@show length(dm.free_patch_dofs_loc)
   #@assert length(dm.patch_dofs_gl) == length(dm.free_patch_dofs_loc)
+end
+
+#=
+Finds, for each of the given GLOBAL RT dof ids, its position in the
+*current* (assumed not-yet-shrunk-by-any-other-removal) dm.patch_dofs_gl,
+writing the result into the caller-provided `out` buffer (only its first
+`length(dof_ids)` entries are meaningful) to avoid allocating. This is a
+pure lookup: it is the caller's responsibility to call this *before* any
+dof removal (homogeneous or prescribed) touches patch_dofs_gl, since it
+relies on patch_dofs_gl still reflecting the original local numbering used
+by e.g. linalg.M/linalg.B/linalg.RHS_RT. The returned indices remain valid
+references into those fixed-size arrays regardless of what happens to
+patch_dofs_gl afterwards.
+=#
+function find_local_dof_positions!(out, dm::DOFManager, dof_ids)
+  patch_dofs_gl = dm.patch_dofs_gl
+  for k in eachindex(dof_ids)
+    loc = findfirst_eq(dof_ids[k], patch_dofs_gl)
+    loc isa Nothing && error("prescribed dof cannot be located in the current patch!")
+    out[k] = loc
+  end
+  out
+end
+
+#=
+Removes the given GLOBAL RT dof ids from the patch's free system, exactly
+as remove_homogeneous_neumann_dofs! does for the (always-zero) internal
+patch boundary. Unlike that function, the dofs being removed here are
+generally *nonzero* (prescribed from Neumann data), so their original local
+positions (`local_indices`, from `find_local_dof_positions` called on a
+still-pristine patch_dofs_gl, i.e. *before* this function or
+remove_homogeneous_neumann_dofs! ran) must be used by the caller beforehand
+to lift the prescribed values into the patch RHS. This function only needs
+to be safe to call *after* other removals have already shrunk
+patch_dofs_gl: it locates targets purely by value, never by position, so it
+does not depend on patch_dofs_gl being pristine.
+=#
+function remove_prescribed_dofs!(dm::DOFManager, dof_ids, local_indices)
+  patch_dofs_gl = dm.patch_dofs_gl
+  free_patch_dofs_loc = dm.free_patch_dofs_loc
+  for loc in local_indices
+    idx = findfirst_eq(loc, free_patch_dofs_loc)
+    idx isa Nothing && error("prescribed dof already removed from the free set!")
+    deleteat!(free_patch_dofs_loc, idx)
+  end
+  for gdof in dof_ids
+    idx = findfirst_eq(gdof, patch_dofs_gl)
+    idx isa Nothing && error("prescribed dof cannot be located while shrinking patch_dofs_gl!")
+    deleteat!(patch_dofs_gl, idx)
+  end
+  nothing
 end
 
 function update_global_patch_dofs!(dm::DOFManager, patch_data)

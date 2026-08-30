@@ -56,7 +56,14 @@ end
 """
     build_averaged_flux(𝐀ₕ, model)
 
-TODO: relevant docstring
+Builds a simple lowest-order (RT₀) `H(div, Ω)`-conforming flux reconstruction
+`σ_ave` by averaging the (generally discontinuous, face-wise two-valued)
+normal component of `𝐀ₕ` across each interior face, and taking it directly
+on boundary faces. `𝐀ₕ` is typically `-∇(uh)` for a conforming
+approximation `uh` of the Poisson problem. Unlike [`build_equilibrated_flux`](@ref),
+`σ_ave` does not satisfy the equilibrium property `∇⋅σ_ave = f`, so the
+resulting a posteriori estimator `‖σ_ave - 𝐀ₕ‖` is typically less sharp;
+see the package tutorials for a comparison.
 """
 function build_averaged_flux(𝐀ₕ, model)
   𝓣ₕ = Triangulation(model)

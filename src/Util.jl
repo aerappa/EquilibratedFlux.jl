@@ -26,3 +26,16 @@ function smart_collect(lazy_array)
   end
   non_lazy
 end
+
+#=
+Equivalent to `findfirst(n -> n == val, arr)`, but as a plain loop instead
+of a closure passed to a higher-order function. Used in DOFManager.jl's hot
+(per-cell/per-patch) path, where a captured-variable closure risks a heap
+allocation on every call; this form is guaranteed allocation-free.
+=#
+function findfirst_eq(val, arr)
+  @inbounds for i in eachindex(arr)
+    arr[i] == val && return i
+  end
+  nothing
+end
